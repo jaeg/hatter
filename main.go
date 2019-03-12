@@ -78,6 +78,55 @@ func main() {
 			}
 		}
 
+	case "endpoints":
+		cmd2 := ""
+		if len(os.Args) > 2 {
+			cmd2 = os.Args[2]
+		}
+		switch cmd2 {
+		case "":
+			threads := client.Keys("default:Endpoints:*").Val()
+			for i := range threads {
+				fmt.Println(threads[i])
+				fmt.Println("-", "Status", client.HGet(threads[i], "Status").Val())
+			}
+		case "stop":
+			if len(os.Args) < 4 {
+				fmt.Println("invalid")
+			} else {
+				key := os.Args[3]
+				client.HSet(key, "Status", "disabled")
+			}
+
+		case "start":
+			if len(os.Args) < 4 {
+				fmt.Println("invalid")
+			} else {
+				key := os.Args[3]
+				client.HSet(key, "Status", "enabled")
+			}
+
+		case "load":
+			if len(os.Args) < 4 {
+				fmt.Println("invalid")
+			} else {
+				scripts := os.Args[3]
+
+				scriptArray := strings.Split(scripts, ",")
+				for i := range scriptArray {
+					scriptName := scriptArray[i]
+					fBytes, err := ioutil.ReadFile(scriptName)
+					if err != nil {
+						fmt.Println("File load failed")
+						return
+					}
+					client.HSet("default:Endpoints:"+scriptName, "Source", string(fBytes))
+					client.HSet("default:Endpoints:"+scriptName, "Status", "enabled")
+				}
+
+			}
+		}
+
 	case "warts":
 
 		cmd2 := ""
