@@ -130,7 +130,7 @@ func main() {
 				fmt.Println("invalid")
 			} else {
 				key := os.Args[3]
-				client.HSet(key, "Status", "disabled")
+				client.HSet(cluster+":Warts:"+key, "Status", "disabled")
 			}
 
 		case "start":
