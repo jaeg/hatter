@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/go-redis/redis"
@@ -41,6 +42,15 @@ func main() {
 
 	switch cmd {
 	case "":
+	case "apply":
+		if len(os.Args) > 2 {
+			fileName := os.Args[2]
+			fmt.Println(loadEnvironment(client, fileName))
+		} else {
+			fmt.Println("No file")
+			return
+		}
+
 	case "purge":
 		fmt.Println("Sure? (Y)")
 		reader := bufio.NewReader(os.Stdin)
@@ -205,5 +215,46 @@ func loadScript(client *redis.Client, cluster string, scriptName string) (err er
 	client.HSet(cluster+":Threads:"+scriptName, "State", "stopped")
 	client.HSet(cluster+":Threads:"+scriptName, "Heartbeat", 0)
 	client.HSet(cluster+":Threads:"+scriptName, "Owner", "")
+	return
+}
+
+type Endpoint struct {
+	Route    string
+	FilePath string
+}
+
+type Script struct {
+	FilePath string
+}
+
+type Env struct {
+	Endpoints []Endpoint
+	Scripts   []Script
+	Cluster   string
+}
+
+func loadEnvironment(client *redis.Client, fileName string) (err error) {
+	fBytes, err := ioutil.ReadFile(fileName)
+
+	if err == nil {
+		var env Env
+		err = json.Unmarshal(fBytes, &env)
+		if err == nil {
+			fmt.Println(env)
+			for i := range env.Endpoints {
+				err = loadEndpoint(client, env.Cluster, env.Endpoints[i].Route, path.Dir(fileName)+"/"+env.Endpoints[i].FilePath)
+				if err != nil {
+					return
+				}
+			}
+
+			for i := range env.Scripts {
+				err = loadScript(client, env.Cluster, path.Dir(fileName)+"/"+env.Scripts[i].FilePath)
+				if err != nil {
+					return
+				}
+			}
+		}
+	}
 	return
 }
