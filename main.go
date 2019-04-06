@@ -4,7 +4,10 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"html"
 	"io/ioutil"
+	"log"
+	"net/http"
 	"os"
 	"path"
 	"strings"
@@ -12,8 +15,20 @@ import (
 	"github.com/go-redis/redis"
 )
 
+type WartMeta struct {
+	Name      string
+	Status    string
+	State     string
+	Heartbeat string
+	CPU       string
+	Mem       string
+}
+
+var client *redis.Client
+var cluster = "default"
+
 func main() {
-	cluster := "default"
+	cluster = "default"
 	redisAddress := "localhost:6379"
 	redisPassword := ""
 
@@ -34,7 +49,7 @@ func main() {
 		cmd = os.Args[1]
 	}
 
-	client := redis.NewClient(&redis.Options{
+	client = redis.NewClient(&redis.Options{
 		Addr:     redisAddress,
 		Password: redisPassword, // no password set
 		DB:       0,             // use default DB
@@ -42,6 +57,11 @@ func main() {
 
 	switch cmd {
 	case "":
+	case "proxy":
+		http.HandleFunc("/warts", wartsHandler)
+		http.HandleFunc("/threads", threadsHandler)
+		http.HandleFunc("/endpoints", endpointsHandler)
+		log.Fatal(http.ListenAndServe(":9898", nil))
 	case "apply":
 		if len(os.Args) > 2 {
 			fileName := os.Args[2]
@@ -257,4 +277,77 @@ func loadEnvironment(client *redis.Client, fileName string) (err error) {
 		}
 	}
 	return
+}
+
+func wartsHandler(w http.ResponseWriter, r *http.Request) {
+	addCorsHeader(w)
+	if r.Method == http.MethodGet {
+		if len(r.URL.Query().Get("name")) > 0 {
+			name := r.URL.Query().Get("name")
+			wartMeta := &WartMeta{}
+			wartMeta.Name = name
+			wartMeta.Status = client.HGet(name, "Status").Val()
+			wartMeta.State = client.HGet(name, "State").Val()
+			wartMeta.Heartbeat = client.HGet(name, "Heartbeat").Val()
+			wartMeta.CPU = client.HGet(name+":Health", "cpu").Val()
+			wartMeta.Mem = client.HGet(name+":Health", "memory").Val()
+
+			out, err := json.Marshal(wartMeta)
+			if err == nil {
+				fmt.Fprintf(w, string(out))
+			} else {
+				fmt.Fprintf(w, "{'error':'"+err.Error()+"'}")
+			}
+		} else {
+			wartMetas := make([]*WartMeta, 0)
+			warts := client.Keys(cluster + ":Warts:*").Val()
+			for i := range warts {
+				s := strings.Split(warts[i], ":")
+				if s[len(s)-1] != "Health" {
+					wartMeta := &WartMeta{}
+					wartMeta.Name = warts[i]
+					wartMeta.Status = client.HGet(warts[i], "Status").Val()
+					wartMeta.State = client.HGet(warts[i], "State").Val()
+					wartMeta.Heartbeat = client.HGet(warts[i], "Heartbeat").Val()
+					wartMeta.CPU = client.HGet(warts[i]+":Health", "cpu").Val()
+					wartMeta.Mem = client.HGet(warts[i]+":Health", "memory").Val()
+					wartMetas = append(wartMetas, wartMeta)
+				}
+			}
+			out, err := json.Marshal(wartMetas)
+			if err == nil {
+				fmt.Fprintf(w, string(out))
+			} else {
+				fmt.Fprintf(w, "{'error':'"+err.Error()+"'}")
+			}
+		}
+	}
+	if r.Method == http.MethodPut {
+		decoder := json.NewDecoder(r.Body)
+		var wart WartMeta
+		err := decoder.Decode(&wart)
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println(wart)
+		client.HSet(wart.Name, "Status", wart.Status)
+		client.HSet(wart.Name, "State", wart.State)
+	}
+}
+func threadsHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
+}
+func endpointsHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
+}
+
+func addCorsHeader(res http.ResponseWriter) {
+	headers := res.Header()
+	headers.Add("Access-Control-Allow-Origin", "*")
+	headers.Add("Vary", "Origin")
+	headers.Add("Vary", "Access-Control-Request-Method")
+	headers.Add("Vary", "Access-Control-Request-Headers")
+	headers.Add("Access-Control-Allow-Headers", "Content-Type, Origin, Accept, token")
+	headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT,OPTIONS")
 }
