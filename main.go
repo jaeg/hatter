@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"html"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -22,6 +21,19 @@ type WartMeta struct {
 	Heartbeat string
 	CPU       string
 	Mem       string
+}
+
+type ThreadMeta struct {
+	Name      string
+	Status    string
+	State     string
+	Owner     string
+	Heartbeat string
+}
+
+type EndpointMeta struct {
+	Name   string
+	Status string
 }
 
 var client *redis.Client
@@ -330,16 +342,102 @@ func wartsHandler(w http.ResponseWriter, r *http.Request) {
 			panic(err)
 		}
 
-		fmt.Println(wart)
 		client.HSet(wart.Name, "Status", wart.Status)
 		client.HSet(wart.Name, "State", wart.State)
 	}
 }
 func threadsHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
+	addCorsHeader(w)
+	if r.Method == http.MethodGet {
+		if len(r.URL.Query().Get("name")) > 0 {
+			name := r.URL.Query().Get("name")
+			threadMeta := &ThreadMeta{}
+			threadMeta.Name = name
+			threadMeta.Status = client.HGet(name, "Status").Val()
+			threadMeta.State = client.HGet(name, "State").Val()
+			threadMeta.Heartbeat = client.HGet(name, "Heartbeat").Val()
+			threadMeta.Owner = client.HGet(name, "Owner").Val()
+
+			out, err := json.Marshal(threadMeta)
+			if err == nil {
+				fmt.Fprintf(w, string(out))
+			} else {
+				fmt.Fprintf(w, "{'error':'"+err.Error()+"'}")
+			}
+		} else {
+			threadMetas := make([]*ThreadMeta, 0)
+			threads := client.Keys(cluster + ":Threads:*").Val()
+			for i := range threads {
+				threadMeta := &ThreadMeta{}
+				threadMeta.Name = threads[i]
+				threadMeta.Status = client.HGet(threads[i], "Status").Val()
+				threadMeta.State = client.HGet(threads[i], "State").Val()
+				threadMeta.Heartbeat = client.HGet(threads[i], "Heartbeat").Val()
+				threadMeta.Owner = client.HGet(threads[i], "Owner").Val()
+				threadMetas = append(threadMetas, threadMeta)
+
+			}
+			out, err := json.Marshal(threadMetas)
+			if err == nil {
+				fmt.Fprintf(w, string(out))
+			} else {
+				fmt.Fprintf(w, "{'error':'"+err.Error()+"'}")
+			}
+		}
+	}
+	if r.Method == http.MethodPut {
+		decoder := json.NewDecoder(r.Body)
+		var thread ThreadMeta
+		err := decoder.Decode(&thread)
+		if err != nil {
+			panic(err)
+		}
+		client.HSet(thread.Name, "Status", thread.Status)
+		client.HSet(thread.Name, "State", thread.State)
+	}
 }
 func endpointsHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
+	addCorsHeader(w)
+	if r.Method == http.MethodGet {
+		if len(r.URL.Query().Get("name")) > 0 {
+			name := r.URL.Query().Get("name")
+			threadMeta := &EndpointMeta{}
+			threadMeta.Name = name
+			threadMeta.Status = client.HGet(name, "Status").Val()
+
+			out, err := json.Marshal(threadMeta)
+			if err == nil {
+				fmt.Fprintf(w, string(out))
+			} else {
+				fmt.Fprintf(w, "{'error':'"+err.Error()+"'}")
+			}
+		} else {
+			threadMetas := make([]*EndpointMeta, 0)
+			threads := client.Keys(cluster + ":Endpoints:*").Val()
+			for i := range threads {
+				threadMeta := &EndpointMeta{}
+				threadMeta.Name = threads[i]
+				threadMeta.Status = client.HGet(threads[i], "Status").Val()
+				threadMetas = append(threadMetas, threadMeta)
+
+			}
+			out, err := json.Marshal(threadMetas)
+			if err == nil {
+				fmt.Fprintf(w, string(out))
+			} else {
+				fmt.Fprintf(w, "{'error':'"+err.Error()+"'}")
+			}
+		}
+	}
+	if r.Method == http.MethodPut {
+		decoder := json.NewDecoder(r.Body)
+		var thread EndpointMeta
+		err := decoder.Decode(&thread)
+		if err != nil {
+			panic(err)
+		}
+		client.HSet(thread.Name, "Status", thread.Status)
+	}
 }
 
 func addCorsHeader(res http.ResponseWriter) {
