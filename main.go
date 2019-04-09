@@ -111,6 +111,8 @@ func main() {
 				fmt.Println("-", "State", client.HGet(threads[i], "State").Val())
 				fmt.Println("-", "Owner", client.HGet(threads[i], "Owner").Val())
 				fmt.Println("-", "Heartbeat", client.HGet(threads[i], "Heartbeat").Val())
+				fmt.Println("-", "Error", client.HGet(threads[i], "Error").Val())
+				fmt.Println("-", "ErrorTime", client.HGet(threads[i], "ErrorTime").Val())
 			}
 		case "stop":
 			if len(os.Args) < 4 {
@@ -232,8 +234,11 @@ func loadEndpoint(client *redis.Client, cluster string, scriptName string, scrip
 	if err != nil {
 		return
 	}
-	client.HSet(cluster+":Endpoints:"+scriptName, "Source", string(fBytes))
-	client.HSet(cluster+":Endpoints:"+scriptName, "Status", "enabled")
+	key := cluster + ":Endpoints:" + scriptName
+	client.HSet(key, "Source", string(fBytes))
+	client.HSet(key, "Status", "enabled")
+	client.HSet(key, "Error", "")
+	client.HSet(key, "ErrorTime", "")
 	return
 }
 
@@ -242,11 +247,15 @@ func loadScript(client *redis.Client, cluster string, scriptName string) (err er
 	if err != nil {
 		return
 	}
-	client.HSet(cluster+":Threads:"+scriptName, "Source", string(fBytes))
-	client.HSet(cluster+":Threads:"+scriptName, "Status", "enabled")
-	client.HSet(cluster+":Threads:"+scriptName, "State", "stopped")
-	client.HSet(cluster+":Threads:"+scriptName, "Heartbeat", 0)
-	client.HSet(cluster+":Threads:"+scriptName, "Owner", "")
+
+	key := cluster + ":Threads:" + scriptName
+	client.HSet(key, "Source", string(fBytes))
+	client.HSet(key, "Status", "enabled")
+	client.HSet(key, "State", "stopped")
+	client.HSet(key, "Heartbeat", 0)
+	client.HSet(key, "Owner", "")
+	client.HSet(key, "Error", "")
+	client.HSet(key, "ErrorTime", "")
 	return
 }
 
