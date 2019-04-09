@@ -36,6 +36,25 @@ type EndpointMeta struct {
 	Status string
 }
 
+type Endpoint struct {
+	Route    string
+	FilePath string
+}
+
+type Script struct {
+	FilePath       string
+	NumberOfCycles int
+	Frequency      string
+	CycleDelay     int
+	DeadSeconds    int
+}
+
+type Env struct {
+	Endpoints []Endpoint
+	Scripts   []Script
+	Cluster   string
+}
+
 var client *redis.Client
 var cluster = "default"
 
@@ -128,22 +147,6 @@ func main() {
 			} else {
 				key := os.Args[3]
 				client.HSet(key, "Status", "enabled")
-			}
-
-		case "load":
-			if len(os.Args) < 4 {
-				fmt.Println("invalid")
-			} else {
-				scripts := os.Args[3]
-
-				scriptArray := strings.Split(scripts, ",")
-				for i := range scriptArray {
-					err := loadScript(client, cluster, scriptArray[i])
-					if err != nil {
-						fmt.Println("Failed to load: " + scriptArray[i])
-					}
-				}
-
 			}
 		}
 
@@ -242,7 +245,7 @@ func loadEndpoint(client *redis.Client, cluster string, scriptName string, scrip
 	return
 }
 
-func loadScript(client *redis.Client, cluster string, scriptName string) (err error) {
+func loadScript(client *redis.Client, cluster string, scriptName string, script Script) (err error) {
 	fBytes, err := ioutil.ReadFile(scriptName)
 	if err != nil {
 		return
@@ -256,22 +259,11 @@ func loadScript(client *redis.Client, cluster string, scriptName string) (err er
 	client.HSet(key, "Owner", "")
 	client.HSet(key, "Error", "")
 	client.HSet(key, "ErrorTime", "")
+	client.HSet(key, "NumberOfCycles", script.NumberOfCycles)
+	client.HSet(key, "Frequency", script.Frequency)
+	client.HSet(key, "CycleDelay", script.CycleDelay)
+	client.HSet(key, "DeadSeconds", script.DeadSeconds)
 	return
-}
-
-type Endpoint struct {
-	Route    string
-	FilePath string
-}
-
-type Script struct {
-	FilePath string
-}
-
-type Env struct {
-	Endpoints []Endpoint
-	Scripts   []Script
-	Cluster   string
 }
 
 func loadEnvironment(client *redis.Client, fileName string) (err error) {
@@ -290,7 +282,7 @@ func loadEnvironment(client *redis.Client, fileName string) (err error) {
 			}
 
 			for i := range env.Scripts {
-				err = loadScript(client, env.Cluster, path.Dir(fileName)+"/"+env.Scripts[i].FilePath)
+				err = loadScript(client, env.Cluster, path.Dir(fileName)+"/"+env.Scripts[i].FilePath, env.Scripts[i])
 				if err != nil {
 					return
 				}
