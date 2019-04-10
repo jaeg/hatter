@@ -42,11 +42,9 @@ type Endpoint struct {
 }
 
 type Script struct {
-	FilePath       string
-	NumberOfCycles int
-	Frequency      string
-	CycleDelay     int
-	DeadSeconds    int
+	FilePath    string
+	Hang        int
+	DeadSeconds int
 }
 
 type Env struct {
@@ -259,9 +257,7 @@ func loadScript(client *redis.Client, cluster string, scriptName string, script 
 	client.HSet(key, "Owner", "")
 	client.HSet(key, "Error", "")
 	client.HSet(key, "ErrorTime", "")
-	client.HSet(key, "NumberOfCycles", script.NumberOfCycles)
-	client.HSet(key, "Frequency", script.Frequency)
-	client.HSet(key, "CycleDelay", script.CycleDelay)
+	client.HSet(key, "Hang", script.Hang)
 	client.HSet(key, "DeadSeconds", script.DeadSeconds)
 	return
 }
