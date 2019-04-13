@@ -1,6 +1,26 @@
 # Wart Control
 
-#### Commands
+## Getting dependencies
+- install deps
+  - https://github.com/golang/dep
+- install dependencies
+  - `deps ensure`
+
+## Get up and running
+- Build it
+  - `go build`
+- Create .config file or use premade one
+  ```
+  {
+  "redis-address":"localhost:6379",
+  "redis-password":"",
+  "cluster":"default"
+  }
+```
+- Then use
+  -  `./wart-control threads`
+
+## Commands
 - proxy
   - provides endpoints for wart control UI
 - apply <env file path>
