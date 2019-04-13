@@ -131,7 +131,7 @@ func main() {
 				fmt.Println("-", "Error", client.HGet(threads[i], "Error").Val())
 				fmt.Println("-", "ErrorTime", client.HGet(threads[i], "ErrorTime").Val())
 			}
-		case "stop":
+		case "disable":
 			if len(os.Args) < 4 {
 				fmt.Println("invalid")
 			} else {
@@ -139,7 +139,7 @@ func main() {
 				client.HSet(key, "Status", "disabled")
 			}
 
-		case "start":
+		case "enable":
 			if len(os.Args) < 4 {
 				fmt.Println("invalid")
 			} else {
@@ -160,7 +160,7 @@ func main() {
 				fmt.Println(threads[i])
 				fmt.Println("-", "Status", client.HGet(threads[i], "Status").Val())
 			}
-		case "stop":
+		case "disable":
 			if len(os.Args) < 4 {
 				fmt.Println("invalid")
 			} else {
@@ -168,7 +168,7 @@ func main() {
 				client.HSet(cluster+":Warts:"+key, "Status", "disabled")
 			}
 
-		case "start":
+		case "enable":
 			if len(os.Args) < 4 {
 				fmt.Println("invalid")
 			} else {
