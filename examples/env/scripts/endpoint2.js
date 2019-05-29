@@ -1,1 +1,8 @@
-response.Write("I am the 2nd endpoint.")
+<?
+var testObject = {
+  type: "Test",
+  value: "Watermelon",
+  list: ["Fruit","More fruit","Dairy"]
+}
+response.Write(JSON.stringify(testObject))
+?>
