@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -13,6 +14,8 @@ import (
 
 	"github.com/go-redis/redis"
 )
+
+var ctx = context.Background()
 
 type WartMeta struct {
 	Name      string
@@ -106,10 +109,10 @@ func main() {
 		a, _, err := reader.ReadRune()
 		if err == nil {
 			if a == 'Y' {
-				keys := client.Keys(cluster + ":*").Val()
+				keys := client.Keys(ctx, cluster+":*").Val()
 				for k := range keys {
 					fmt.Println("Removed:", keys[k])
-					client.Del(keys[k])
+					client.Del(ctx, keys[k])
 				}
 			}
 		}
@@ -121,22 +124,22 @@ func main() {
 		}
 		switch cmd2 {
 		case "":
-			threads := client.Keys(cluster + ":Threads:*").Val()
+			threads := client.Keys(ctx, cluster+":Threads:*").Val()
 			for i := range threads {
 				fmt.Println(threads[i])
-				fmt.Println("-", "Status", client.HGet(threads[i], "Status").Val())
-				fmt.Println("-", "State", client.HGet(threads[i], "State").Val())
-				fmt.Println("-", "Owner", client.HGet(threads[i], "Owner").Val())
-				fmt.Println("-", "Heartbeat", client.HGet(threads[i], "Heartbeat").Val())
-				fmt.Println("-", "Error", client.HGet(threads[i], "Error").Val())
-				fmt.Println("-", "ErrorTime", client.HGet(threads[i], "ErrorTime").Val())
+				fmt.Println("-", "Status", client.HGet(ctx, threads[i], "Status").Val())
+				fmt.Println("-", "State", client.HGet(ctx, threads[i], "State").Val())
+				fmt.Println("-", "Owner", client.HGet(ctx, threads[i], "Owner").Val())
+				fmt.Println("-", "Heartbeat", client.HGet(ctx, threads[i], "Heartbeat").Val())
+				fmt.Println("-", "Error", client.HGet(ctx, threads[i], "Error").Val())
+				fmt.Println("-", "ErrorTime", client.HGet(ctx, threads[i], "ErrorTime").Val())
 			}
 		case "disable":
 			if len(os.Args) < 4 {
 				fmt.Println("invalid")
 			} else {
 				key := os.Args[3]
-				client.HSet(key, "Status", "disabled")
+				client.HSet(ctx, key, "Status", "disabled")
 			}
 
 		case "enable":
@@ -144,7 +147,7 @@ func main() {
 				fmt.Println("invalid")
 			} else {
 				key := os.Args[3]
-				client.HSet(key, "Status", "enabled")
+				client.HSet(ctx, key, "Status", "enabled")
 			}
 		}
 
@@ -155,17 +158,17 @@ func main() {
 		}
 		switch cmd2 {
 		case "":
-			threads := client.Keys(cluster + ":Endpoints:*").Val()
+			threads := client.Keys(ctx, cluster+":Endpoints:*").Val()
 			for i := range threads {
 				fmt.Println(threads[i])
-				fmt.Println("-", "Status", client.HGet(threads[i], "Status").Val())
+				fmt.Println("-", "Status", client.HGet(ctx, threads[i], "Status").Val())
 			}
 		case "disable":
 			if len(os.Args) < 4 {
 				fmt.Println("invalid")
 			} else {
 				key := os.Args[3]
-				client.HSet(cluster+":Warts:"+key, "Status", "disabled")
+				client.HSet(ctx, cluster+":Warts:"+key, "Status", "disabled")
 			}
 
 		case "enable":
@@ -173,7 +176,7 @@ func main() {
 				fmt.Println("invalid")
 			} else {
 				key := os.Args[3]
-				client.HSet(key, "Status", "enabled")
+				client.HSet(ctx, key, "Status", "enabled")
 			}
 
 		case "load":
@@ -201,17 +204,17 @@ func main() {
 		switch cmd2 {
 		case "":
 			//Print out warts
-			warts := client.Keys(cluster + ":Warts:*").Val()
+			warts := client.Keys(ctx, cluster+":Warts:*").Val()
 			for i := range warts {
 				s := strings.Split(warts[i], ":")
 				if s[len(s)-1] != "Health" {
 					fmt.Println(warts[i])
-					fmt.Println("-", "Status", client.HGet(warts[i], "Status").Val())
-					fmt.Println("-", "State", client.HGet(warts[i], "State").Val())
-					fmt.Println("-", "Heartbeat", client.HGet(warts[i], "Heartbeat").Val())
+					fmt.Println("-", "Status", client.HGet(ctx, warts[i], "Status").Val())
+					fmt.Println("-", "State", client.HGet(ctx, warts[i], "State").Val())
+					fmt.Println("-", "Heartbeat", client.HGet(ctx, warts[i], "Heartbeat").Val())
 					fmt.Println("-", "Health")
-					fmt.Println("-", "-", "CPU", client.HGet(warts[i]+":Health", "cpu").Val())
-					fmt.Println("-", "-", "Mem", client.HGet(warts[i]+":Health", "memory").Val())
+					fmt.Println("-", "-", "CPU", client.HGet(ctx, warts[i]+":Health", "cpu").Val())
+					fmt.Println("-", "-", "Mem", client.HGet(ctx, warts[i]+":Health", "memory").Val())
 				}
 			}
 		case "stop":
@@ -227,7 +230,7 @@ func main() {
 
 func stopWart(client *redis.Client, cluster string, wart string) {
 	key := cluster + ":Warts:" + wart
-	client.HSet(key, "Status", "disabled")
+	client.HSet(ctx, key, "Status", "disabled")
 }
 
 func loadEndpoint(client *redis.Client, cluster string, scriptName string, scriptPath string) (err error) {
@@ -236,10 +239,10 @@ func loadEndpoint(client *redis.Client, cluster string, scriptName string, scrip
 		return
 	}
 	key := cluster + ":Endpoints:" + scriptName
-	client.HSet(key, "Source", string(fBytes))
-	client.HSet(key, "Status", "enabled")
-	client.HSet(key, "Error", "")
-	client.HSet(key, "ErrorTime", "")
+	client.HSet(ctx, key, "Source", string(fBytes))
+	client.HSet(ctx, key, "Status", "enabled")
+	client.HSet(ctx, key, "Error", "")
+	client.HSet(ctx, key, "ErrorTime", "")
 	return
 }
 
@@ -250,15 +253,15 @@ func loadScript(client *redis.Client, cluster string, scriptName string, script 
 	}
 
 	key := cluster + ":Threads:" + scriptName
-	client.HSet(key, "Source", string(fBytes))
-	client.HSet(key, "Status", "enabled")
-	client.HSet(key, "State", "stopped")
-	client.HSet(key, "Heartbeat", 0)
-	client.HSet(key, "Owner", "")
-	client.HSet(key, "Error", "")
-	client.HSet(key, "ErrorTime", "")
-	client.HSet(key, "Hang", script.Hang)
-	client.HSet(key, "DeadSeconds", script.DeadSeconds)
+	client.HSet(ctx, key, "Source", string(fBytes))
+	client.HSet(ctx, key, "Status", "enabled")
+	client.HSet(ctx, key, "State", "stopped")
+	client.HSet(ctx, key, "Heartbeat", 0)
+	client.HSet(ctx, key, "Owner", "")
+	client.HSet(ctx, key, "Error", "")
+	client.HSet(ctx, key, "ErrorTime", "")
+	client.HSet(ctx, key, "Hang", script.Hang)
+	client.HSet(ctx, key, "DeadSeconds", script.DeadSeconds)
 	return
 }
 
@@ -295,11 +298,11 @@ func wartsHandler(w http.ResponseWriter, r *http.Request) {
 			name := r.URL.Query().Get("name")
 			wartMeta := &WartMeta{}
 			wartMeta.Name = name
-			wartMeta.Status = client.HGet(name, "Status").Val()
-			wartMeta.State = client.HGet(name, "State").Val()
-			wartMeta.Heartbeat = client.HGet(name, "Heartbeat").Val()
-			wartMeta.CPU = client.HGet(name+":Health", "cpu").Val()
-			wartMeta.Mem = client.HGet(name+":Health", "memory").Val()
+			wartMeta.Status = client.HGet(ctx, name, "Status").Val()
+			wartMeta.State = client.HGet(ctx, name, "State").Val()
+			wartMeta.Heartbeat = client.HGet(ctx, name, "Heartbeat").Val()
+			wartMeta.CPU = client.HGet(ctx, name+":Health", "cpu").Val()
+			wartMeta.Mem = client.HGet(ctx, name+":Health", "memory").Val()
 
 			out, err := json.Marshal(wartMeta)
 			if err == nil {
@@ -309,17 +312,17 @@ func wartsHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		} else {
 			wartMetas := make([]*WartMeta, 0)
-			warts := client.Keys(cluster + ":Warts:*").Val()
+			warts := client.Keys(ctx, cluster+":Warts:*").Val()
 			for i := range warts {
 				s := strings.Split(warts[i], ":")
 				if s[len(s)-1] != "Health" {
 					wartMeta := &WartMeta{}
 					wartMeta.Name = warts[i]
-					wartMeta.Status = client.HGet(warts[i], "Status").Val()
-					wartMeta.State = client.HGet(warts[i], "State").Val()
-					wartMeta.Heartbeat = client.HGet(warts[i], "Heartbeat").Val()
-					wartMeta.CPU = client.HGet(warts[i]+":Health", "cpu").Val()
-					wartMeta.Mem = client.HGet(warts[i]+":Health", "memory").Val()
+					wartMeta.Status = client.HGet(ctx, warts[i], "Status").Val()
+					wartMeta.State = client.HGet(ctx, warts[i], "State").Val()
+					wartMeta.Heartbeat = client.HGet(ctx, warts[i], "Heartbeat").Val()
+					wartMeta.CPU = client.HGet(ctx, warts[i]+":Health", "cpu").Val()
+					wartMeta.Mem = client.HGet(ctx, warts[i]+":Health", "memory").Val()
 					wartMetas = append(wartMetas, wartMeta)
 				}
 			}
@@ -339,8 +342,8 @@ func wartsHandler(w http.ResponseWriter, r *http.Request) {
 			panic(err)
 		}
 
-		client.HSet(wart.Name, "Status", wart.Status)
-		client.HSet(wart.Name, "State", wart.State)
+		client.HSet(ctx, wart.Name, "Status", wart.Status)
+		client.HSet(ctx, wart.Name, "State", wart.State)
 	}
 }
 func threadsHandler(w http.ResponseWriter, r *http.Request) {
@@ -350,10 +353,10 @@ func threadsHandler(w http.ResponseWriter, r *http.Request) {
 			name := r.URL.Query().Get("name")
 			threadMeta := &ThreadMeta{}
 			threadMeta.Name = name
-			threadMeta.Status = client.HGet(name, "Status").Val()
-			threadMeta.State = client.HGet(name, "State").Val()
-			threadMeta.Heartbeat = client.HGet(name, "Heartbeat").Val()
-			threadMeta.Owner = client.HGet(name, "Owner").Val()
+			threadMeta.Status = client.HGet(ctx, name, "Status").Val()
+			threadMeta.State = client.HGet(ctx, name, "State").Val()
+			threadMeta.Heartbeat = client.HGet(ctx, name, "Heartbeat").Val()
+			threadMeta.Owner = client.HGet(ctx, name, "Owner").Val()
 
 			out, err := json.Marshal(threadMeta)
 			if err == nil {
@@ -363,14 +366,14 @@ func threadsHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		} else {
 			threadMetas := make([]*ThreadMeta, 0)
-			threads := client.Keys(cluster + ":Threads:*").Val()
+			threads := client.Keys(ctx, cluster+":Threads:*").Val()
 			for i := range threads {
 				threadMeta := &ThreadMeta{}
 				threadMeta.Name = threads[i]
-				threadMeta.Status = client.HGet(threads[i], "Status").Val()
-				threadMeta.State = client.HGet(threads[i], "State").Val()
-				threadMeta.Heartbeat = client.HGet(threads[i], "Heartbeat").Val()
-				threadMeta.Owner = client.HGet(threads[i], "Owner").Val()
+				threadMeta.Status = client.HGet(ctx, threads[i], "Status").Val()
+				threadMeta.State = client.HGet(ctx, threads[i], "State").Val()
+				threadMeta.Heartbeat = client.HGet(ctx, threads[i], "Heartbeat").Val()
+				threadMeta.Owner = client.HGet(ctx, threads[i], "Owner").Val()
 				threadMetas = append(threadMetas, threadMeta)
 
 			}
@@ -389,8 +392,8 @@ func threadsHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			panic(err)
 		}
-		client.HSet(thread.Name, "Status", thread.Status)
-		client.HSet(thread.Name, "State", thread.State)
+		client.HSet(ctx, thread.Name, "Status", thread.Status)
+		client.HSet(ctx, thread.Name, "State", thread.State)
 	}
 }
 func endpointsHandler(w http.ResponseWriter, r *http.Request) {
@@ -400,7 +403,7 @@ func endpointsHandler(w http.ResponseWriter, r *http.Request) {
 			name := r.URL.Query().Get("name")
 			threadMeta := &EndpointMeta{}
 			threadMeta.Name = name
-			threadMeta.Status = client.HGet(name, "Status").Val()
+			threadMeta.Status = client.HGet(ctx, name, "Status").Val()
 
 			out, err := json.Marshal(threadMeta)
 			if err == nil {
@@ -410,11 +413,11 @@ func endpointsHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		} else {
 			threadMetas := make([]*EndpointMeta, 0)
-			threads := client.Keys(cluster + ":Endpoints:*").Val()
+			threads := client.Keys(ctx, cluster+":Endpoints:*").Val()
 			for i := range threads {
 				threadMeta := &EndpointMeta{}
 				threadMeta.Name = threads[i]
-				threadMeta.Status = client.HGet(threads[i], "Status").Val()
+				threadMeta.Status = client.HGet(ctx, threads[i], "Status").Val()
 				threadMetas = append(threadMetas, threadMeta)
 
 			}
@@ -433,7 +436,7 @@ func endpointsHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			panic(err)
 		}
-		client.HSet(thread.Name, "Status", thread.Status)
+		client.HSet(ctx, thread.Name, "Status", thread.Status)
 	}
 }
 
