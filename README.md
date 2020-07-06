@@ -8,7 +8,7 @@
 
 ## Get up and running
 - Build it
-  - `go build`
+  - `make build`
 - Create .config file or use premade one
   ```
   {
@@ -18,7 +18,7 @@
   }
 ```
 - Then use
-  -  `./wart-control threads`
+  -  `./bin/wc threads`
 
 ## Commands
 - proxy
