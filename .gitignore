@@ -1,3 +1,4 @@
 vendor/
 wart-control
 dist/
+bin/
