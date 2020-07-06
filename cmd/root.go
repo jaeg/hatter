@@ -103,10 +103,12 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.wart-control.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.PersistentFlags().StringP("redis-address", "a", "localhost:6379", "<redis address>:<port>")
+	rootCmd.PersistentFlags().StringP("redis-password", "p", "", "redis password")
+	rootCmd.PersistentFlags().StringP("cluster", "c", "default", "cluster the code runs in")
+	viper.BindPFlag("redis-address", rootCmd.PersistentFlags().Lookup("redis-address"))
+	viper.BindPFlag("redis-password", rootCmd.PersistentFlags().Lookup("redis-password"))
+	viper.BindPFlag("cluster", rootCmd.PersistentFlags().Lookup("cluster"))
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -132,6 +134,8 @@ func initConfig() {
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
+	} else {
+		fmt.Println(err)
 	}
 }
 

@@ -8,14 +8,15 @@ Requires a version of go that supports go.mod
 ## Get up and running
 - Build it
   - `make build`
-- Create .config file or use premade one
-  ```
-  {
-  "redis-address":"localhost:6379",
-  "redis-password":"",
-  "cluster":"default"
-  }
+- Create $HOME/.wart-control.yaml file or use premade one
 ```
+  ---
+  redis-address: localhost:6379
+  redis-password: ''
+  cluster: default
+
+```
+  Optionally you can pass in a different config using `--config`.
 - Then use
   -  `./bin/wc threads`
 

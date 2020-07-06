@@ -19,18 +19,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var ctx = context.Background()
 var pClient *redis.Client
-var cluster = "default"
+var pCluster = "default"
 
 // proxyCmd represents the proxy command
 var proxyCmd = &cobra.Command{
@@ -42,21 +42,9 @@ var proxyCmd = &cobra.Command{
 	- /threads
 	- /endpoints`,
 	Run: func(cmd *cobra.Command, args []string) {
-		cluster = "default"
-		redisAddress := "localhost:6379"
-		redisPassword := ""
-
-		fBytes, err := ioutil.ReadFile(".config")
-		if err == nil {
-			var f interface{}
-			err2 := json.Unmarshal(fBytes, &f)
-			if err2 == nil {
-				m := f.(map[string]interface{})
-				redisAddress = m["redis-address"].(string)
-				redisPassword = m["redis-password"].(string)
-				cluster = m["cluster"].(string)
-			}
-		}
+		redisAddress := viper.GetViper().GetString("redis-address")
+		redisPassword := viper.GetViper().GetString("redis-password")
+		pCluster = viper.GetViper().GetString("cluster")
 
 		pClient = redis.NewClient(&redis.Options{
 			Addr:     redisAddress,
@@ -106,7 +94,7 @@ func wartsHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		} else {
 			wartMetas := make([]*WartMeta, 0)
-			warts := pClient.Keys(ctx, cluster+":Warts:*").Val()
+			warts := pClient.Keys(ctx, pCluster+":Warts:*").Val()
 			for i := range warts {
 				s := strings.Split(warts[i], ":")
 				if s[len(s)-1] != "Health" {
@@ -160,7 +148,7 @@ func threadsHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		} else {
 			threadMetas := make([]*ThreadMeta, 0)
-			threads := pClient.Keys(ctx, cluster+":Threads:*").Val()
+			threads := pClient.Keys(ctx, pCluster+":Threads:*").Val()
 			for i := range threads {
 				threadMeta := &ThreadMeta{}
 				threadMeta.Name = threads[i]
@@ -207,7 +195,7 @@ func endpointsHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		} else {
 			threadMetas := make([]*EndpointMeta, 0)
-			threads := pClient.Keys(ctx, cluster+":Endpoints:*").Val()
+			threads := pClient.Keys(ctx, pCluster+":Endpoints:*").Val()
 			for i := range threads {
 				threadMeta := &EndpointMeta{}
 				threadMeta.Name = threads[i]

@@ -16,14 +16,13 @@ limitations under the License.
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // wartsCmd represents the warts command
@@ -35,19 +34,9 @@ var wartsCmd = &cobra.Command{
 	default - lists warts
 	stop <wart name> - stops named wart`,
 	Run: func(cmd *cobra.Command, args []string) {
-		redisAddress := "localhost:6379"
-		redisPassword := ""
-
-		fBytes, err := ioutil.ReadFile(".config")
-		if err == nil {
-			var f interface{}
-			err2 := json.Unmarshal(fBytes, &f)
-			if err2 == nil {
-				m := f.(map[string]interface{})
-				redisAddress = m["redis-address"].(string)
-				redisPassword = m["redis-password"].(string)
-			}
-		}
+		redisAddress := viper.GetViper().GetString("redis-address")
+		redisPassword := viper.GetViper().GetString("redis-password")
+		cluster := viper.GetViper().GetString("cluster")
 
 		client := redis.NewClient(&redis.Options{
 			Addr:     redisAddress,

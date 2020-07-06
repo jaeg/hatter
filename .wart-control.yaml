@@ -1,0 +1,4 @@
+---
+redis-address: localhost:6379
+redis-password: ''
+cluster: default
