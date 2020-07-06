@@ -29,7 +29,7 @@ import (
 // threadsCmd represents the threads command
 var threadsCmd = &cobra.Command{
 	Use:   "threads <command> <command args>",
-	Short: "A brief description of your command",
+	Short: "Thread controls",
 	Long: `Controls for threads.
 	Commands:
 	default - lists threads
