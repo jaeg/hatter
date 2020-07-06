@@ -1,10 +1,9 @@
 # Wart Control
 
 ## Getting dependencies
-- install deps
-  - https://github.com/golang/dep
-- install dependencies
-  - `deps ensure`
+Requires a version of go that supports go.mod
+- go get
+
 
 ## Get up and running
 - Build it
