@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/go-redis/redis"
 )
@@ -253,15 +254,18 @@ func loadScript(client *redis.Client, cluster string, scriptName string, script 
 	}
 
 	key := cluster + ":Threads:" + scriptName
-	client.HSet(ctx, key, "Source", string(fBytes))
-	client.HSet(ctx, key, "Status", "enabled")
+	client.HSet(ctx, key, "Status", "disabled")
 	client.HSet(ctx, key, "State", "stopped")
+	time.Sleep(time.Second)
+	client.HSet(ctx, key, "Source", string(fBytes))
 	client.HSet(ctx, key, "Heartbeat", 0)
 	client.HSet(ctx, key, "Owner", "")
 	client.HSet(ctx, key, "Error", "")
 	client.HSet(ctx, key, "ErrorTime", "")
 	client.HSet(ctx, key, "Hang", script.Hang)
 	client.HSet(ctx, key, "DeadSeconds", script.DeadSeconds)
+
+	client.HSet(ctx, key, "Status", "enabled")
 	return
 }
 
