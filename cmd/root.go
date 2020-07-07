@@ -63,9 +63,17 @@ type Script struct {
 	DeadSeconds int
 }
 
+type Job struct {
+	FilePath    string
+	Hang        int
+	DeadSeconds int
+	Cron        string
+}
+
 type Env struct {
 	Endpoints []Endpoint
 	Scripts   []Script
+	Jobs      []Job
 	Cluster   string
 }
 
@@ -179,6 +187,29 @@ func loadScript(client *redis.Client, cluster string, scriptName string, script 
 	return
 }
 
+func loadJob(client *redis.Client, cluster string, scriptName string, job Job) (err error) {
+	fBytes, err := ioutil.ReadFile(scriptName)
+	if err != nil {
+		return
+	}
+
+	key := cluster + ":Jobs:" + scriptName
+	client.HSet(ctx, key, "Status", "disabled")
+	client.HSet(ctx, key, "State", "stopped")
+	time.Sleep(time.Second)
+	client.HSet(ctx, key, "Source", string(fBytes))
+	client.HSet(ctx, key, "Heartbeat", 0)
+	client.HSet(ctx, key, "Owner", "")
+	client.HSet(ctx, key, "Error", "")
+	client.HSet(ctx, key, "ErrorTime", "")
+	client.HSet(ctx, key, "Hang", job.Hang)
+	client.HSet(ctx, key, "DeadSeconds", job.DeadSeconds)
+	client.HSet(ctx, key, "Cron", job.Cron)
+
+	client.HSet(ctx, key, "Status", "enabled")
+	return
+}
+
 func loadEnvironment(client *redis.Client, fileName string) (err error) {
 	fBytes, err := ioutil.ReadFile(fileName)
 
@@ -196,6 +227,13 @@ func loadEnvironment(client *redis.Client, fileName string) (err error) {
 
 			for i := range env.Scripts {
 				err = loadScript(client, env.Cluster, path.Dir(fileName)+"/"+env.Scripts[i].FilePath, env.Scripts[i])
+				if err != nil {
+					return
+				}
+			}
+
+			for i := range env.Jobs {
+				err = loadJob(client, env.Cluster, path.Dir(fileName)+"/"+env.Jobs[i].FilePath, env.Jobs[i])
 				if err != nil {
 					return
 				}
