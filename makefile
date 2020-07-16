@@ -4,7 +4,7 @@
  GOCLEAN=$(GOCMD) clean
  GOTEST=$(GOCMD) test
  GOGET=$(GOCMD) get
- BINARY_NAME=wc
+ BINARY_NAME=hatter
  BINARY_UNIX=$(BINARY_NAME)_unix
  VERSION=0.1.0
 
