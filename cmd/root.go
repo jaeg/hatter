@@ -30,7 +30,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-type WartMeta struct {
+type WorkerMeta struct {
 	Name      string
 	Status    string
 	State     string
@@ -81,7 +81,7 @@ var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "wart-control",
+	Use:   "hatter",
 	Short: "A brief description of your application",
 	Long: `A longer description that spans multiple lines and likely contains
 examples and usage of using your application. For example:
@@ -110,7 +110,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.wart-control.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.hatter.yaml)")
 	rootCmd.PersistentFlags().StringP("redis-address", "a", "localhost:6379", "<redis address>:<port>")
 	rootCmd.PersistentFlags().StringP("redis-password", "p", "", "redis password")
 	rootCmd.PersistentFlags().StringP("cluster", "c", "default", "cluster the code runs in")
@@ -132,9 +132,9 @@ func initConfig() {
 			os.Exit(1)
 		}
 
-		// Search config in home directory with name ".wart-control" (without extension).
+		// Search config in home directory with name ".hatter" (without extension).
 		viper.AddConfigPath(home)
-		viper.SetConfigName(".wart-control")
+		viper.SetConfigName(".hatter")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
@@ -147,8 +147,8 @@ func initConfig() {
 	}
 }
 
-func stopWart(client *redis.Client, cluster string, wart string) {
-	key := cluster + ":Warts:" + wart
+func stopWorker(client *redis.Client, cluster string, worker string) {
+	key := cluster + ":workers:" + worker
 	client.HSet(ctx, key, "Status", "disabled")
 }
 

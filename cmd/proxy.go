@@ -38,7 +38,7 @@ var proxyCmd = &cobra.Command{
 	Short: "Starts proxy server for ui",
 	Long: `Starts proxy server for ui
 	Endpoints
-	- /warts 
+	- /workers 
 	- /threads
 	- /endpoints`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -52,7 +52,7 @@ var proxyCmd = &cobra.Command{
 			DB:       0,             // use default DB
 		})
 
-		http.HandleFunc("/warts", wartsHandler)
+		http.HandleFunc("/workers", workersHandler)
 		http.HandleFunc("/threads", threadsHandler)
 		http.HandleFunc("/endpoints", endpointsHandler)
 		log.Fatal(http.ListenAndServe(":9898", nil))
@@ -73,42 +73,42 @@ func init() {
 	// proxyCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
-func wartsHandler(w http.ResponseWriter, r *http.Request) {
+func workersHandler(w http.ResponseWriter, r *http.Request) {
 	addCorsHeader(w)
 	if r.Method == http.MethodGet {
 		if len(r.URL.Query().Get("name")) > 0 {
 			name := r.URL.Query().Get("name")
-			wartMeta := &WartMeta{}
-			wartMeta.Name = name
-			wartMeta.Status = pClient.HGet(ctx, name, "Status").Val()
-			wartMeta.State = pClient.HGet(ctx, name, "State").Val()
-			wartMeta.Heartbeat = pClient.HGet(ctx, name, "Heartbeat").Val()
-			wartMeta.CPU = pClient.HGet(ctx, name+":Health", "cpu").Val()
-			wartMeta.Mem = pClient.HGet(ctx, name+":Health", "memory").Val()
+			workerMeta := &WorkerMeta{}
+			workerMeta.Name = name
+			workerMeta.Status = pClient.HGet(ctx, name, "Status").Val()
+			workerMeta.State = pClient.HGet(ctx, name, "State").Val()
+			workerMeta.Heartbeat = pClient.HGet(ctx, name, "Heartbeat").Val()
+			workerMeta.CPU = pClient.HGet(ctx, name+":Health", "cpu").Val()
+			workerMeta.Mem = pClient.HGet(ctx, name+":Health", "memory").Val()
 
-			out, err := json.Marshal(wartMeta)
+			out, err := json.Marshal(workerMeta)
 			if err == nil {
 				fmt.Fprintf(w, string(out))
 			} else {
 				fmt.Fprintf(w, "{'error':'"+err.Error()+"'}")
 			}
 		} else {
-			wartMetas := make([]*WartMeta, 0)
-			warts := pClient.Keys(ctx, pCluster+":Warts:*").Val()
-			for i := range warts {
-				s := strings.Split(warts[i], ":")
+			workerMetas := make([]*WorkerMeta, 0)
+			workers := pClient.Keys(ctx, pCluster+":workers:*").Val()
+			for i := range workers {
+				s := strings.Split(workers[i], ":")
 				if s[len(s)-1] != "Health" {
-					wartMeta := &WartMeta{}
-					wartMeta.Name = warts[i]
-					wartMeta.Status = pClient.HGet(ctx, warts[i], "Status").Val()
-					wartMeta.State = pClient.HGet(ctx, warts[i], "State").Val()
-					wartMeta.Heartbeat = pClient.HGet(ctx, warts[i], "Heartbeat").Val()
-					wartMeta.CPU = pClient.HGet(ctx, warts[i]+":Health", "cpu").Val()
-					wartMeta.Mem = pClient.HGet(ctx, warts[i]+":Health", "memory").Val()
-					wartMetas = append(wartMetas, wartMeta)
+					workerMeta := &WorkerMeta{}
+					workerMeta.Name = workers[i]
+					workerMeta.Status = pClient.HGet(ctx, workers[i], "Status").Val()
+					workerMeta.State = pClient.HGet(ctx, workers[i], "State").Val()
+					workerMeta.Heartbeat = pClient.HGet(ctx, workers[i], "Heartbeat").Val()
+					workerMeta.CPU = pClient.HGet(ctx, workers[i]+":Health", "cpu").Val()
+					workerMeta.Mem = pClient.HGet(ctx, workers[i]+":Health", "memory").Val()
+					workerMetas = append(workerMetas, workerMeta)
 				}
 			}
-			out, err := json.Marshal(wartMetas)
+			out, err := json.Marshal(workerMetas)
 			if err == nil {
 				fmt.Fprintf(w, string(out))
 			} else {
@@ -118,14 +118,14 @@ func wartsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.Method == http.MethodPut {
 		decoder := json.NewDecoder(r.Body)
-		var wart WartMeta
-		err := decoder.Decode(&wart)
+		var worker WorkerMeta
+		err := decoder.Decode(&worker)
 		if err != nil {
 			panic(err)
 		}
 
-		pClient.HSet(ctx, wart.Name, "Status", wart.Status)
-		pClient.HSet(ctx, wart.Name, "State", wart.State)
+		pClient.HSet(ctx, worker.Name, "Status", worker.Status)
+		pClient.HSet(ctx, worker.Name, "State", worker.State)
 	}
 }
 func threadsHandler(w http.ResponseWriter, r *http.Request) {

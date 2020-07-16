@@ -62,7 +62,7 @@ var endpointsCmd = &cobra.Command{
 				fmt.Println("invalid")
 			} else {
 				key := os.Args[3]
-				client.HSet(ctx, cluster+":Warts:"+key, "Status", "disabled")
+				client.HSet(ctx, cluster+":workers:"+key, "Status", "disabled")
 			}
 
 		case "enable":

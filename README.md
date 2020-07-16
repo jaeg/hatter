@@ -1,4 +1,4 @@
-# Wart Control
+# Hatter
 
 ## Getting dependencies
 Requires a version of go that supports go.mod
@@ -8,7 +8,7 @@ Requires a version of go that supports go.mod
 ## Get up and running
 - Build it
   - `make build`
-- Create $HOME/.wart-control.yaml file or use premade one
+- Create $HOME/.hatter.yaml file or use premade one
 ```
   ---
   redis-address: localhost:6379
@@ -22,7 +22,7 @@ Requires a version of go that supports go.mod
 
 ## Commands
 - proxy
-  - provides endpoints for wart control UI
+  - provides endpoints for Hatter UI
 - apply <env file path>
   - applies environment file to cluster
 - purge
@@ -42,7 +42,7 @@ Requires a version of go that supports go.mod
 - endpoints enable
   - enables endpoint
 
-- warts
-  - lists warts
-- warts stop <name>
-  - stops wart
+- workers
+  - lists workers
+- workers stop <name>
+  - stops worker

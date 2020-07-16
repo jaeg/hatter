@@ -15,7 +15,7 @@ limitations under the License.
 */
 package main
 
-import "github.com/jaeg/wart-control/cmd"
+import "github.com/jaeg/hatter/cmd"
 
 func main() {
 	cmd.Execute()

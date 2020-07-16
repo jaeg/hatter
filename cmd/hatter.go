@@ -25,14 +25,14 @@ import (
 	"github.com/spf13/viper"
 )
 
-// wartsCmd represents the warts command
-var wartsCmd = &cobra.Command{
-	Use:   "warts <command> <command args>",
-	Short: "Wart controls",
-	Long: `Controls for warts themselves.
+// hatterCmd represents the workers command
+var hatterCmd = &cobra.Command{
+	Use:   "workers <command> <command args>",
+	Short: "Hatter",
+	Long: `Controls for workers themselves.
 	Commands:
-	default - lists warts
-	stop <wart name> - stops named wart`,
+	default - lists workers
+	stop <worker name> - stops named worker`,
 	Run: func(cmd *cobra.Command, args []string) {
 		redisAddress := viper.GetViper().GetString("redis-address")
 		redisPassword := viper.GetViper().GetString("redis-password")
@@ -50,25 +50,25 @@ var wartsCmd = &cobra.Command{
 		}
 		switch cmd2 {
 		case "":
-			//Print out warts
-			warts := client.Keys(ctx, cluster+":Warts:*").Val()
-			for i := range warts {
-				s := strings.Split(warts[i], ":")
+			//Print out workers
+			workers := client.Keys(ctx, cluster+":workers:*").Val()
+			for i := range workers {
+				s := strings.Split(workers[i], ":")
 				if s[len(s)-1] != "Health" {
-					fmt.Println(warts[i])
-					fmt.Println("-", "Status", client.HGet(ctx, warts[i], "Status").Val())
-					fmt.Println("-", "State", client.HGet(ctx, warts[i], "State").Val())
-					fmt.Println("-", "Heartbeat", client.HGet(ctx, warts[i], "Heartbeat").Val())
+					fmt.Println(workers[i])
+					fmt.Println("-", "Status", client.HGet(ctx, workers[i], "Status").Val())
+					fmt.Println("-", "State", client.HGet(ctx, workers[i], "State").Val())
+					fmt.Println("-", "Heartbeat", client.HGet(ctx, workers[i], "Heartbeat").Val())
 					fmt.Println("-", "Health")
-					fmt.Println("-", "-", "CPU", client.HGet(ctx, warts[i]+":Health", "cpu").Val())
-					fmt.Println("-", "-", "Mem", client.HGet(ctx, warts[i]+":Health", "memory").Val())
+					fmt.Println("-", "-", "CPU", client.HGet(ctx, workers[i]+":Health", "cpu").Val())
+					fmt.Println("-", "-", "Mem", client.HGet(ctx, workers[i]+":Health", "memory").Val())
 				}
 			}
 		case "stop":
 			if len(os.Args) < 4 {
 				fmt.Println("invalid")
 			} else {
-				stopWart(client, cluster, os.Args[3])
+				stopWorker(client, cluster, os.Args[3])
 			}
 
 		}
@@ -76,15 +76,15 @@ var wartsCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(wartsCmd)
+	rootCmd.AddCommand(hatterCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// wartsCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// hatterCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// wartsCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// hatterCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

@@ -1,4 +1,4 @@
-module github.com/jaeg/wart-control
+module github.com/jaeg/hatter
 
 go 1.14
 
